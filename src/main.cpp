@@ -10,14 +10,13 @@
 
 #include "util.h"
 
-// If you want specify ssid and password:
-// Uncomment wifi.begin() line in netConnect() and
-// you need to create "env.h" file
+// You need to create "env.h" file
 // with contents like this:
 // #pragma once
 // const char *SSID = "YOUR-WI-FI-SSID";
 // const char *PASSWORD = "YOUR-WI-FI-PASSWORD";
-// #include "env.h"
+
+#include "env.h"
 
 // mDNS.
 const char *M_DNS_HOSTNAME = "ledy-server";
@@ -137,7 +136,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 
 void processCommand(uint8_t *payload, size_t length)
 {
-  if (payload == nullptr || length == 0) // Проверка на нулевой указатель и нулевую длину
+  if (payload == nullptr || length == 0)
     return;
 
   constexpr unsigned char COMMAND_SET_COLORS = 0;
@@ -165,25 +164,6 @@ void processCommand(uint8_t *payload, size_t length)
     FastLED.setTemperature(temp);
     break;
   }
-  case COMMAND_SET_WIFI:
-  {
-    // [1 BYTE HEADER][1-32 BYTE SSID][1-32 BYTE PASSWORD].
-    // IF SSID OR PASSWORD LENGTH < 32 IT MUST BE FILLED WITH
-    // NULL TERM. (0).
-    if (length != 65)
-      return;
-
-    std::array<uint8_t, 32> ssid;
-    copyAndCheckTerminator(payload + 1, ssid);
-
-    std::array<uint8_t, 32> password;
-    copyAndCheckTerminator(payload + 1 + 32, password);
-
-    write32EEPROM(ssid, 0);
-    write32EEPROM(password, 32);
-
-    break;
-  }
   default:
   {
     break;
@@ -193,8 +173,16 @@ void processCommand(uint8_t *payload, size_t length)
 
 void netConnect()
 {
-  WiFi.mode(WIFI_AP_STA);
-  WiFi.softAP("ledy", "setpassplz");
+  // Wi-Fi.
+  WiFi.mode(WIFI_STA);
+  // Specify ssid and password:
+  WiFi.begin(SSID, PASSWORD);
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("Wi-Fi: connecting...");
+    delay(500);
+  }
+  Serial.println("Wi-Fi: connected. IP: " + WiFi.localIP().toString());
 
   // mDNS.
   if (!MDNS.begin(M_DNS_HOSTNAME))
@@ -212,33 +200,6 @@ void netConnect()
   webSocket.close();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-
-  // Wi-Fi.
-
-  // Specify ssid and password:
-  // WiFi.begin(SSID, PASSWORD);
-
-  // SSID + password.
-  // Comment this block if you want specify ssid and password.
-  // Btw this block doesnt work because mDNS doesnt see ESP32 when
-  // i connect to ESP32 WiFi AP, or something like this. Idk how to fix it.
-  // It was assumed that it would be possible to set
-  // the ssid and password from wi fi through
-  // an access point, connecting to it, for example, from a smartphone.
-  auto ssid = getSSID();
-  auto password = getPassword();
-  Serial.printf("SSID: %s\n", ssid.c_str());
-  Serial.printf("Password: %s\n", password.c_str());
-  WiFi.begin(ssid.c_str(), password.c_str());
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.println("Wi-Fi: connecting...");
-    delay(500);
-  }
-  WiFi.softAPdisconnect(false);
-  WiFi.mode(WIFI_STA);
-  Serial.println("Wi-Fi: connected. IP: " + WiFi.localIP().toString());
 
   return;
 }
