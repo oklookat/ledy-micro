@@ -32,37 +32,34 @@ static void wifiHandler(void *arg,
     }
 }
 
+static wifi_config_t wifiConfig = {
+    .sta = {
+        .ssid = LEDY_WIFI_SSID,
+        .password = LEDY_WIFI_PASS},
+};
+static esp_event_handler_instance_t instanceAnyId;
+
 esp_err_t ledyWifiInit(void)
 {
-    WIFI_EVENT_GROUP = xEventGroupCreate();
-
     ESP_ERROR_CHECK(esp_netif_init());
-
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    esp_event_handler_instance_t instanceAnyId;
+    
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifiHandler,
                                                         NULL,
                                                         &instanceAnyId));
-
-    wifi_config_t wifiConfig = {
-        .sta = {
-            .ssid = LEDY_WIFI_SSID,
-            .password = LEDY_WIFI_PASS},
-    };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
-     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
     esp_err_t retVal = ESP_OK;
+    WIFI_EVENT_GROUP = xEventGroupCreate();
     EventBits_t bits = xEventGroupWaitBits(WIFI_EVENT_GROUP,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE,
@@ -70,15 +67,16 @@ esp_err_t ledyWifiInit(void)
                                            portMAX_DELAY);
     if (bits & WIFI_CONNECTED_BIT)
     {
+        ESP_LOGI(TAG, "Conntected");
     }
     else if (bits & WIFI_FAIL_BIT)
     {
-        ESP_LOGI(TAG, "Wi-Fi connect failed");
+        ESP_LOGE(TAG, "Connect failed");
         retVal = ESP_FAIL;
     }
     else
     {
-        // ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        ESP_LOGE(TAG, "Unexpected event");
         retVal = ESP_FAIL;
     }
     /* The event will not be processed after unregister */

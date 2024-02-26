@@ -3,7 +3,6 @@
 
 #include <esp_log.h>
 #include <driver/gpio.h>
-#include <semaphore.h>
 #include "led_strip.h"
 
 #define LEDY_PIN_1 32

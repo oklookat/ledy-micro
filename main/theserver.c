@@ -4,7 +4,8 @@ static const char *TAG = "ledy-server";
 
 static bool processCommand(uint8_t *payload, size_t length)
 {
-    if (payload == NULL || length == 0) {
+    if (payload == NULL || length == 0)
+    {
         return true;
     }
 
@@ -32,11 +33,14 @@ static esp_err_t wsHandler(httpd_req_t *req)
     httpd_ws_frame_t ws_pkt;
     uint8_t *buf = NULL;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    ws_pkt.type = HTTPD_WS_TYPE_BINARY;
     // Set max_len = 0 to get the frame len.
     esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
     if (ret != ESP_OK)
     {
+        // ???.
+        // W (16180) httpd_ws: httpd_ws_recv_frame: WS frame is not properly masked.
+        // E (16180) ledy-server: httpd_ws_recv_frame failed to get frame len with 259
         ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
         return ret;
     }
@@ -61,7 +65,7 @@ static esp_err_t wsHandler(httpd_req_t *req)
     }
 
     bool clearMem = processCommand(ws_pkt.payload, ws_pkt.len);
-    // ESP_LOGI(TAG, "Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
+    //ESP_LOGI(TAG, "Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
 
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
     static const char *data = "ok";
@@ -82,6 +86,8 @@ static esp_err_t wsHandler(httpd_req_t *req)
     return ret;
 }
 
+httpd_handle_t server = NULL;
+
 static const httpd_uri_t wsConfig = {
     .uri = "/ws",
     .method = HTTP_GET,
@@ -91,7 +97,6 @@ static const httpd_uri_t wsConfig = {
 
 httpd_handle_t ledyStartServer(void)
 {
-    httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
