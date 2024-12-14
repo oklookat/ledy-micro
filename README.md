@@ -58,6 +58,7 @@
 - Нажмите ``F1``, введите ``sdk conf``, в меню выберите ``SDK Configuration editor (Menuconfig)``.
 
 - В поиске введите ``ledy``, введите в поля ``WiFi SSID`` и ``WiFi Password`` имя и пароль вашей Wi-Fi сети.
+    - p.s нужен 2.4ghz wi-fi.
 
 - В поиске введите ``websocket`` и включите галочку ``WebSocket server support``.
 
